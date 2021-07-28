@@ -1,6 +1,7 @@
 import React from 'react';
+import ReactDOM from 'react-dom';
 import './Charts.css';
-import {LineChart, Line, XAxis, YAxis, Tooltip} from 'recharts';
+import { Line } from 'react-chartjs-2';
 
 class Charts extends React.Component {
     constructor(props) {
@@ -8,16 +9,16 @@ class Charts extends React.Component {
         this.state = {
             'currenciesName': [],
             'choosenCurrenciesData': [],
-            'result': [],
-            'labels': [],
-            'rates': []
+            'results': []
         };
         this.getDataforCharts = this.getDataforCharts.bind(this);
+        this.showChartAfterClick = this.showChartAfterClick.bind(this);
     }
 
     componentDidMount() {
-        this.getCurrencyName();       
+        this.getCurrencyName();
     }
+    
 
     getCurrencyName = () => {
         let url = 'https://bank.gov.ua/NBUStatService/v1/statdirectory/exchangenew?json';
@@ -37,8 +38,6 @@ class Charts extends React.Component {
     getDataforCharts = (e) => {
         this.todayDay = (new Date()).getDate();
         let arr = [];
-        let labelsArr = [];
-        let ratesArr = [];
         for (let i=1; i<this.todayDay;i++) {
             let str = '0';
             i<10 ? str +=i : str = i.toString();
@@ -46,23 +45,54 @@ class Charts extends React.Component {
             fetch(specUrl)
             .then(res => res.json())
             .then((res) => {
-                this.setState ({  choosenCurrenciesData : {'date' : res[0].exchangedate , 'rate' : res[0].rate} }, ()=>{
-                     arr.push (this.state.choosenCurrenciesData);
-                     arr.map ( ( key ) => {
-                         labelsArr.push(key.date);
-                         ratesArr.push(key.rate);                 
-                    });
-                });
+                this.setState ({  choosenCurrenciesData : {'date' : res[0].exchangedate , 'rate' : res[0].rate} }
+                , ()=>{arr.push (this.state.choosenCurrenciesData)});
             })
             .catch(err => { throw err });
            
-        };  
-        this.state.labels = labelsArr;
-        this.state.rates = ratesArr;
-        this.state.result = arr;
+        };   
+        this.setState({results: arr});
     }
     
-    render () {
+    showChartAfterClick () {
+        let arrResult = this.state.results;
+        let dateRes = [];
+        dateRes = arrResult.map( (value) => value.date );
+        let rateRes = [];
+        rateRes = arrResult.map( (value) => value.rate );
+        
+        const options = {
+            scales: {
+
+              yAxes: [
+                {
+                  ticks: {
+                    beginAtZero: true,
+                  },
+                },
+              ],
+            },
+          };
+            ReactDOM.render (
+                <div>
+                   <Line data={{
+                       labels: dateRes,
+                       datasets: [
+                         {
+                           label: 'day rates',
+                           data: rateRes,
+                           fill: false,
+                           backgroundColor: 'rgb(255, 99, 132)',
+                           borderColor: 'rgba(255, 99, 132, 0.2)',
+                         },
+                       ],
+                   }} options={options} />
+                  </div> ,
+                  document.getElementById('chart')
+            )
+    }
+    
+    render () {  
         return (
         <div className="Charts-container">
             <form className="Charts-form-container" name="currencies-form">
@@ -76,7 +106,7 @@ class Charts extends React.Component {
             <table className="Charts-table-container">
                     <caption className="Charts-table-title">Data and rate for choosen currency</caption>
                     <tbody>
-                    {this.state.result.map( (item, index) => {
+                    {this.state.results.map( (item, index) => {
                         return (
                     
                     <tr className="Charts-table-row" key={index}>
@@ -90,29 +120,44 @@ class Charts extends React.Component {
             </table>
             <div className="Charts-diagram-container">
                 <h2 className="Charts-diagram-title">The chart below (sorry, but I can`t to resolve it completely)</h2>
-                <div>
-                    <SimpleLineChart data={this.state.result} />
-                </div>
-            </div>  
+                <button onClick={this.showChartAfterClick}>Show chart</button>
+                <div id="chart"></div>
+            </div>
         </div>
         )
     }
 };
-
 export default Charts;
 
-export function SimpleLineChart (props) {
-    
-         console.log(props.data);
+
+// export function SimpleLineChart (props) {
+//   console.log(props);
+//   const options = {
+//     scales: {
+//       yAxes: [
+//         {
+//           ticks: {
+//             beginAtZero: true,
+//           },
+//         },
+//       ],
+//     },
+//   };
    
-    return (
-        <div>
-             <LineChart data={[props.data]} width={450} height={400} margin={{ top: 50, bottom: 50, left:50, right:50}}>
-               <XAxis dataKey='Date'/>
-               <YAxis label='Rate'/>
-               <Line type="monotone" dataKey="rate" stroke="#001529" activeDot={{r: 5}}/>
-               <Tooltip/>
-          </LineChart>
-          </div>
-    )
- };
+//     return (
+//         <div>
+//            <Line data={{
+//                labels: [props.data.date],
+//                datasets: [
+//                  {
+//                    label: '# of Votes',
+//                    data: [props.data.rate],
+//                    fill: false,
+//                    backgroundColor: 'rgb(255, 99, 132)',
+//                    borderColor: 'rgba(255, 99, 132, 0.2)',
+//                  },
+//                ],
+//            }} options={options} />
+//           </div>
+//     )
+//  };
